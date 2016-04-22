@@ -50,6 +50,9 @@ public class WebViewDemo extends Application {
 		webView.getEngine().load(
 				getClass().getResource(page).
 				toExternalForm());
+		System.out.println(
+				getClass().getResource(page).
+				toExternalForm());
 
 		primaryStage.setScene(new Scene(webView));
 		primaryStage.setTitle("WebView with Java backend");		
