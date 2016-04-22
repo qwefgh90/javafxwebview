@@ -18,7 +18,7 @@ public class ServletContext extends WebMvcConfigurerAdapter {
 
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
-		registry.addResourceHandler("/**").addResourceLocations("/");	//classpath 기준으로 정적 파일들을 등록해주는 함수
+		registry.addResourceHandler("/app/**").addResourceLocations("/app/");	//classpath 기준으로 정적 파일들을 등록해주는 함수
 	}
 
 	@Override

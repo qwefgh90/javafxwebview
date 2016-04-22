@@ -11,6 +11,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
 
@@ -33,9 +35,11 @@ import org.springframework.core.io.ClassPathResource;
 import es.uvigo.ei.sing.webviewdemo.backend.CalculatorService;
 import es.uvigo.ei.sing.webviewdemo.backend.FruitsService;
 
-public class WebViewDemo extends Application {
+public class WebViewMain extends Application {
 
-	private final String PAGE = "/index.html";
+	private final static String APP_DIRECTORY_NAME = "app";
+	private final static String PAGE = "/" + APP_DIRECTORY_NAME + "/index.html";
+	private final static String REDIRECT_PAGE = "/" + APP_DIRECTORY_NAME + "/redirect.html";
 
 	@Override
 	public void start(Stage primaryStage) {
@@ -74,6 +78,7 @@ public class WebViewDemo extends Application {
 		primaryStage.show();
 	}
 
+
 	public static void main(String[] args) throws LifecycleException,
 	ServletException, IOException, URISyntaxException {
 		System.setProperty("prism.lcdtext", "false"); // enhance fonts
@@ -81,28 +86,40 @@ public class WebViewDemo extends Application {
 		Tomcat tomcat = new Tomcat();
 		tomcat.setPort(9090);
 
-		String currentDir = getCurrentBuildPath();
+		String deployedPath = getCurrentBuildPath() ;
 
-		File docBase = createBaseDirectory();
-		
+		Path parentOfClassPath = Paths.get(deployedPath).getParent();
+		Path pathForAppdata = parentOfClassPath.resolve("appdata");
+
+		if(!Files.isWritable(parentOfClassPath)){
+			System.out.println("can't write resource");
+			return;
+		}else if(Files.exists(parentOfClassPath)){
+			System.out.println("already exists");
+		}else{
+			Files.createDirectory(pathForAppdata);
+		}
+
+		File pathForAppdataFile = pathForAppdata.toFile();
+
 		if(isJarStart())
-			copyDirectoryInJar(currentDir,"/",docBase);
+			copyDirectoryInJar(deployedPath, APP_DIRECTORY_NAME, pathForAppdataFile);
 		else
-			FileUtils.copyDirectory(new File(currentDir), docBase);
-			
-		System.out.println(getCurrentBuildPath()); // 현재 클래스 위치
-		System.out.println(docBase); // 현재 클래스 위치
-		
-		Context ctx = tomcat.addWebapp("", docBase.getAbsolutePath());
+			FileUtils.copyDirectory(new File(deployedPath), pathForAppdataFile);
+
+		System.out.println("classpath_root"+getCurrentBuildPath()); // 현재 클래스 위치
+		System.out.println("appdata:"+pathForAppdataFile); // 현재 클래스 위치
+
+		Context ctx = tomcat.addWebapp("", pathForAppdataFile.getAbsolutePath());
 		// https://tomcat.apache.org/tomcat-7.0-doc/api/org/apache/catalina/startup/Tomcat.html#addWebapp(org.apache.catalina.Host,%20java.lang.String,%20java.lang.String)
 
 		ServletContext context = ctx.getServletContext();
-		ctx.addWelcomeFile("index.html");
+		ctx.addWelcomeFile(REDIRECT_PAGE);
 		tomcat.start();
 		//tomcat.getServer().await();
+		
 		// gui
 		launch(args);
-
 	}
 
 	/**
@@ -112,7 +129,7 @@ public class WebViewDemo extends Application {
 	 */
 	public static String getCurrentBuildPath() {
 		if (getResourcePath("") == null) {
-			String path = WebViewDemo.class.getProtectionDomain()
+			String path = WebViewMain.class.getProtectionDomain()
 					.getCodeSource().getLocation().getPath();
 			String decodedPath;
 			try {
@@ -228,7 +245,7 @@ public class WebViewDemo extends Application {
 	 * @return
 	 */
 	public static InputStream getResourceInputstream(String resourceName){
-		return WebViewDemo.class.getClassLoader().getResourceAsStream(resourceName);
+		return WebViewMain.class.getClassLoader().getResourceAsStream(resourceName);
 	}
 
 	/**
