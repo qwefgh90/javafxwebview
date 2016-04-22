@@ -8,20 +8,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
-
-import javafx.application.Application;
-import javafx.event.EventHandler;
-import javafx.scene.Scene;
-import javafx.scene.web.WebEvent;
-import javafx.scene.web.WebView;
-import javafx.stage.Stage;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -34,6 +31,12 @@ import org.springframework.core.io.ClassPathResource;
 
 import es.uvigo.ei.sing.webviewdemo.backend.CalculatorService;
 import es.uvigo.ei.sing.webviewdemo.backend.FruitsService;
+import javafx.application.Application;
+import javafx.event.EventHandler;
+import javafx.scene.Scene;
+import javafx.scene.web.WebEvent;
+import javafx.scene.web.WebView;
+import javafx.stage.Stage;
 
 public class WebViewMain extends Application {
 
@@ -81,20 +84,21 @@ public class WebViewMain extends Application {
 
 	public static void main(String[] args) throws LifecycleException,
 	ServletException, IOException, URISyntaxException {
+
 		System.setProperty("prism.lcdtext", "false"); // enhance fonts
 		// local server
 		Tomcat tomcat = new Tomcat();
 		tomcat.setPort(9090);
 
-		String deployedPath = getCurrentBuildPath() ;
+		Path deployedPath = getCurrentBuildPath() ;
 
-		Path parentOfClassPath = Paths.get(deployedPath).getParent();
+		Path parentOfClassPath = deployedPath.getParent();
 		Path pathForAppdata = parentOfClassPath.resolve("appdata");
 
 		if(!Files.isWritable(parentOfClassPath)){
 			System.out.println("can't write resource");
 			return;
-		}else if(Files.exists(parentOfClassPath)){
+		}else if(Files.exists(pathForAppdata)){
 			System.out.println("already exists");
 		}else{
 			Files.createDirectory(pathForAppdata);
@@ -103,9 +107,9 @@ public class WebViewMain extends Application {
 		File pathForAppdataFile = pathForAppdata.toFile();
 
 		if(isJarStart())
-			copyDirectoryInJar(deployedPath, APP_DIRECTORY_NAME, pathForAppdataFile);
+			copyDirectoryInJar(deployedPath.toString(), APP_DIRECTORY_NAME, pathForAppdataFile);
 		else
-			FileUtils.copyDirectory(new File(deployedPath), pathForAppdataFile);
+			FileUtils.copyDirectory(new File(deployedPath.toString()), pathForAppdataFile);
 
 		System.out.println("classpath_root"+getCurrentBuildPath()); // 현재 클래스 위치
 		System.out.println("appdata:"+pathForAppdataFile); // 현재 클래스 위치
@@ -127,25 +131,24 @@ public class WebViewMain extends Application {
 	 * 
 	 * @return String - path
 	 */
-	public static String getCurrentBuildPath() {
+	public static Path getCurrentBuildPath() {
 		if (getResourcePath("") == null) {
-			String path = WebViewMain.class.getProtectionDomain()
-					.getCodeSource().getLocation().getPath();
-			String decodedPath;
+			URI uri;
 			try {
-				decodedPath = URLDecoder.decode(path, "UTF-8");
-				return decodedPath;
-			} catch (UnsupportedEncodingException e) {
+				uri = WebViewMain.class.getProtectionDomain()
+						.getCodeSource().getLocation().toURI();
+			} catch (URISyntaxException e) {
 				e.printStackTrace();
 				return null;
 			}
+			return Paths.get(uri);
 		} else {
-			return getResourcePath("");
+			return Paths.get(getResourcePath(""));
 		}
 	}
 
 	public static boolean isJarStart() {
-		return getCurrentBuildPath().endsWith(".jar");
+		return getCurrentBuildPath().toString().endsWith(".jar");
 	}
 
 	/**
