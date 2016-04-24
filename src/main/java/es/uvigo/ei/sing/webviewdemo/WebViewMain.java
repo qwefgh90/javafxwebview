@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -26,6 +27,7 @@ import javax.servlet.ServletException;
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.startup.Tomcat;
+import org.apache.catalina.webresources.TomcatURLStreamHandlerFactory;
 import org.apache.commons.io.FileUtils;
 import org.springframework.core.io.ClassPathResource;
 
@@ -88,7 +90,8 @@ public class WebViewMain extends Application {
 		System.setProperty("prism.lcdtext", "false"); // enhance fonts
 		// local server
 		Tomcat tomcat = new Tomcat();
-		tomcat.setPort(9090);
+		tomcat.getConnector().setAttribute("address", "127.0.0.1");;
+		tomcat.getConnector().setAttribute("port", "9292");
 
 		Path deployedPath = getCurrentBuildPath() ;
 
